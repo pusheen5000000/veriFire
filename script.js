@@ -41,6 +41,7 @@
       ],
       environment: {
         humidity: { label: "Humidity", unit: "%RH", value: 41, min: 0, max: 100, warn: null, danger: null },
+        smoke: { label: "Smoke Level", unit: "ppm", value: 12, min: 0, max: 500, warn: 150, danger: 300 },
       },
       classification: {
         fire: 2,
@@ -69,6 +70,7 @@
       // Environmental readings drift gently around baseline
       const env = live.environment;
       env.humidity.value = Math.round(jitter(env.humidity.value, 1, 35, 55));
+      env.smoke.value = Math.round(jitter(env.smoke.value, 2, 5, 25));
 
       // Classification confidences stay low & noisy, cooking slightly dominant occasionally
       const c = live.classification;
@@ -92,6 +94,7 @@
 
       const env = live.environment;
       env.humidity.value = Math.round(jitter(env.humidity.value, 1, 20, 40));
+      env.smoke.value = Math.round(jitter(env.smoke.value, 15, 150, 450));
 
       const c = live.classification;
       c.fire = Math.min(99, Math.round(c.fire + 8 + Math.random() * 6));

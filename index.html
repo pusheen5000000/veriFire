@@ -40,33 +40,25 @@
   <!-- ============ HERO ============ -->
   <section class="hero">
     <div class="hero__text">
-      <p class="hero__eyebrow"><span class="hero__eyebrow-dot"></span> Live edge inference demo</p>
       <h1 class="hero__title">Veri<span class="hero__title-accent">FIRE</span></h1>
       <p class="hero__subtitle">
-        A smoke detector that understands context — separating real fire from cooking, steam, dust, and vaping in real time.
+        We smoke the competition
       </p>
-      <div class="hero__proof" aria-label="Product highlights">
-        <span>100% on-device</span>
-        <span>6-sensor fusion</span>
-        <span>Works offline</span>
-      </div>
       <div class="hero__actions">
         <button id="demoModeBtn" class="btn btn--danger">
-          <span class="btn__icon" aria-hidden="true">&#9889;</span>
+          <span class="btn__icon" aria-hidden="true"></span>
           Simulate Fire Event
         </button>
         <button id="resetModeBtn" class="btn btn--ghost" disabled>
           Reset to Normal
         </button>
       </div>
-      <p class="hero__demo-note">Judge demo: trigger a simulated fire signature and watch the full dashboard respond.</p>
     </div>
 
     <!-- LIVE CAMERA FEED (compact card, sits in the hero's open space) -->
     <div class="hero__camera" aria-labelledby="cameraTitle">
       <div class="hero__camera-header">
         <h2 id="cameraTitle" class="hero__camera-title">Live Camera Feed</h2>
-        <span class="hero__camera-meta" id="cameraMeta">OAK camera · local stream</span>
       </div>
 
       <div class="camera-card">
@@ -101,18 +93,7 @@
     </div>
 
     <div class="hero__core" aria-hidden="true">
-      <!-- Signature element: layered radial sensor core, echoes the AI confidence ring -->
-      <div class="sensor-core" id="heroCore">
-        <svg viewBox="0 0 220 220" class="sensor-core__rings">
-          <circle class="ring ring--outer" cx="110" cy="110" r="98"/>
-          <circle class="ring ring--mid" cx="110" cy="110" r="78"/>
-          <circle class="ring ring--inner" cx="110" cy="110" r="58"/>
-        </svg>
-        <div class="sensor-core__center">
-          <span class="sensor-core__value" id="heroCoreValue">98%</span>
-          <span class="sensor-core__label">Normal Air</span>
-        </div>
-      </div>
+      
     </div>
   </section>
 
@@ -191,6 +172,6 @@
     <p>VeriFIRE · Edge AI safety system · Hackathon prototype</p>
   </footer>
 
-  <script src="script.js"></script>
+ <script src="script.js"></script>
 </body>
 </html>
