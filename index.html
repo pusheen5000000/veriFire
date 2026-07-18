@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>VeriFIRE — Edge AI Fire Detection Dashboard</title>
+
+  <!-- Fonts: Oswald for display/industrial headings, Inter for body, JetBrains Mono for data/readings -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;600&display=swap"
+    rel="stylesheet"
+  />
+
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+
+  <!-- ============ TOP NAVIGATION ============ -->
+  <header class="topnav">
+    <div class="topnav__brand">
+      <span class="brand-mark" aria-hidden="true">
+        <svg viewBox="0 0 24 24" width="22" height="22" fill="none">
+          <path d="M12 2c1.2 3 .3 4.6-1 6.2C9.2 10 8 11.6 8 13.7 8 17.2 10.4 20 14 20c3.6 0 6-2.6 6-6.2 0-2.7-1.5-4.6-3-6-.2 1.6-.9 2.6-1.8 3.2.3-2.8-.7-5.3-3.2-9z" fill="currentColor"/>
+        </svg>
+      </span>
+      <span class="brand-name">Veri<span class="brand-name__accent">FIRE</span></span>
+    </div>
+
+    <div class="topnav__status">
+      <div class="status-pill" id="connectionPill" data-state="online">
+        <span class="status-pill__dot"></span>
+        <span class="status-pill__label" id="connectionLabel">Online</span>
+      </div>
+      <div class="topnav__clock" id="liveClock">--:--:--</div>
+    </div>
+  </header>
+
+  <!-- ============ HERO ============ -->
+  <section class="hero">
+    <div class="hero__text">
+      <p class="hero__eyebrow">Edge AI Detection System</p>
+      <h1 class="hero__title">Veri<span class="hero__title-accent">FIRE</span></h1>
+      <p class="hero__subtitle">
+        Edge AI fire detection that distinguishes real hazards from cooking, steam, dust, and vaping.
+      </p>
+      <div class="hero__actions">
+        <button id="demoModeBtn" class="btn btn--danger">
+          <span class="btn__icon" aria-hidden="true">&#9889;</span>
+          Simulate Fire Event
+        </button>
+        <button id="resetModeBtn" class="btn btn--ghost" disabled>
+          Reset to Normal
+        </button>
+      </div>
+    </div>
+
+    <!-- LIVE CAMERA FEED (compact card, sits in the hero's open space) -->
+    <div class="hero__camera" aria-labelledby="cameraTitle">
+      <div class="hero__camera-header">
+        <h2 id="cameraTitle" class="hero__camera-title">Live Camera Feed</h2>
+        <span class="hero__camera-meta" id="cameraMeta">Local device</span>
+      </div>
+
+      <div class="camera-card">
+        <div class="camera-frame" id="cameraFrame">
+          <video id="cameraVideo" class="camera-video" autoplay playsinline muted></video>
+
+          <!-- Loading state shown while permission is being requested -->
+          <div class="camera-state camera-state--loading" id="cameraLoading">
+            <span class="camera-spinner" aria-hidden="true"></span>
+            <p class="camera-state__text">Requesting camera access…</p>
+          </div>
+
+          <!-- Error state shown on denial / no camera found -->
+          <div class="camera-state camera-state--error" id="cameraError" hidden>
+            <span class="camera-state__icon" aria-hidden="true">&#9888;</span>
+            <p class="camera-state__text" id="cameraErrorText">Camera unavailable.</p>
+            <button class="btn btn--ghost btn--small" id="cameraRetryBtn">Try Again</button>
+          </div>
+
+          <!-- Connection status badge -->
+          <span class="camera-badge" id="cameraBadge" data-state="connecting">Connecting</span>
+
+          <!-- AI classification overlays, synced with the AI Classification panel -->
+          <div class="camera-overlay camera-overlay--label" id="cameraClassOverlay" hidden>SAFE</div>
+          <div class="camera-overlay camera-overlay--confidence" id="cameraConfOverlay" hidden>98%</div>
+        </div>
+
+        <div class="camera-controls">
+          <button class="btn btn--danger btn--small" id="cameraToggleBtn">Stop Camera</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="hero__core" aria-hidden="true">
+      <!-- Signature element: layered radial sensor core, echoes the AI confidence ring -->
+      <div class="sensor-core" id="heroCore">
+        <svg viewBox="0 0 220 220" class="sensor-core__rings">
+          <circle class="ring ring--outer" cx="110" cy="110" r="98"/>
+          <circle class="ring ring--mid" cx="110" cy="110" r="78"/>
+          <circle class="ring ring--inner" cx="110" cy="110" r="58"/>
+        </svg>
+        <div class="sensor-core__center">
+          <span class="sensor-core__value" id="heroCoreValue">98%</span>
+          <span class="sensor-core__label">Normal Air</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ MAIN DASHBOARD ============ -->
+  <main class="dashboard">
+
+    <!-- 1. OVERALL STATUS -->
+    <section class="panel panel--status" aria-labelledby="overallStatusTitle">
+      <div class="panel__header">
+        <h2 id="overallStatusTitle" class="panel__title">Overall Status</h2>
+        <span class="panel__meta" id="overallUpdated">Updated just now</span>
+      </div>
+
+      <div class="overall-status" id="overallStatus" data-state="safe">
+        <div class="overall-status__indicator" id="overallIndicator">
+          <span class="overall-status__pulse"></span>
+          <span class="overall-status__pulse overall-status__pulse--delay"></span>
+          <span class="overall-status__icon" id="overallIcon">&#10003;</span>
+        </div>
+        <div class="overall-status__text">
+          <span class="overall-status__badge" id="overallBadge">SAFE</span>
+          <p class="overall-status__desc" id="overallDesc">
+            All sensors nominal. No signs of fire, smoke, or hazardous gas detected.
+          </p>
+        </div>
+      </div>
+    </section>
+
+    <!-- 2. SENSOR HEALTH -->
+    <section class="panel" aria-labelledby="sensorHealthTitle">
+      <div class="panel__header">
+        <h2 id="sensorHealthTitle" class="panel__title">Sensor Health</h2>
+        <span class="panel__meta">6 devices monitored</span>
+      </div>
+      <div class="sensor-grid" id="sensorHealthGrid">
+        <!-- sensor health cards injected by script.js -->
+      </div>
+    </section>
+
+    <!-- 3. ENVIRONMENTAL READINGS -->
+    <section class="panel" aria-labelledby="envReadingsTitle">
+      <div class="panel__header">
+        <h2 id="envReadingsTitle" class="panel__title">Environmental Readings</h2>
+        <span class="panel__meta">Refreshing every 1s</span>
+      </div>
+      <div class="env-grid" id="envReadingsGrid">
+        <!-- humidity metric card injected by script.js -->
+      </div>
+    </section>
+
+    <!-- 4. AI CLASSIFICATION -->
+    <section class="panel" aria-labelledby="aiClassTitle">
+      <div class="panel__header">
+        <h2 id="aiClassTitle" class="panel__title">AI Classification</h2>
+        <span class="panel__meta">Edge inference · on-device</span>
+      </div>
+      <div class="ai-class" id="aiClassification">
+        <!-- classification bars injected by script.js -->
+      </div>
+    </section>
+
+    <!-- 5. ALERTS -->
+    <section class="panel panel--alerts" aria-labelledby="alertsTitle">
+      <div class="panel__header">
+        <h2 id="alertsTitle" class="panel__title">Alert History</h2>
+        <span class="panel__meta" id="alertCount">0 events</span>
+      </div>
+      <div class="alerts-list" id="alertsList">
+        <!-- alert entries injected by script.js -->
+      </div>
+    </section>
+
+  </main>
+
+  <footer class="footer">
+    <p>VeriFIRE Monitoring Console &middot; Frontend Demo &middot; Mock Data Mode</p>
+  </footer>
+
+  <script src="script.js"></script>
+</body>
+</html>
