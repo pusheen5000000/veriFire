@@ -37,11 +37,7 @@
     const baseline = {
       sensors: [
         { id: "smoke", name: "Smoke Sensor", signal: 97 },
-        { id: "co", name: "CO Sensor", signal: 95 },
-        { id: "co2", name: "CO₂ Sensor", signal: 98 },
-        { id: "temp", name: "Temperature", signal: 99 },
         { id: "humidity", name: "Humidity", signal: 96 },
-        { id: "airquality", name: "Air Quality", signal: 94 },
       ],
       environment: {
         humidity: { label: "Humidity", unit: "%RH", value: 41, min: 0, max: 100, warn: null, danger: null },
@@ -84,10 +80,10 @@
     }
 
     function stepDemoFire() {
-      // Simulated fire event: smoke/CO/temperature climb, signal quality dips slightly
-      // on the smoke + temperature sensors (heat stress), classification shifts to "fire".
+      // Simulated fire event: smoke rises and overall sensor quality shifts slightly
+      // during a hazard event, while classification moves toward "fire".
       live.sensors.forEach((s) => {
-        if (s.id === "smoke" || s.id === "temp") {
+        if (s.id === "smoke") {
           s.signal = Math.round(jitter(s.signal, 1, 78, 96));
         } else {
           s.signal = Math.round(jitter(s.signal, 1, 88, 99));
@@ -165,6 +161,7 @@
     overallUpdated: document.getElementById("overallUpdated"),
 
     sensorHealthGrid: document.getElementById("sensorHealthGrid"),
+    sensorHealthMeta: document.getElementById("sensorHealthMeta"),
     envReadingsGrid: document.getElementById("envReadingsGrid"),
     aiClassification: document.getElementById("aiClassification"),
 
@@ -322,6 +319,10 @@
   }
 
   function renderSensorHealth(sensors) {
+    if (el.sensorHealthMeta) {
+      el.sensorHealthMeta.textContent = `${sensors.length} device${sensors.length === 1 ? "" : "s"} monitored`;
+    }
+
     el.sensorHealthGrid.innerHTML = sensors
       .map((s) => {
         const statusLabel =

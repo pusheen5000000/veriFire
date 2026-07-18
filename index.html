@@ -5,11 +5,11 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>VeriFIRE — Edge AI Fire Detection Dashboard</title>
 
-  <!-- Fonts: Oswald for display/industrial headings, Inter for body, JetBrains Mono for data/readings -->
+  <!-- Fonts: Space Grotesk for a confident demo identity, IBM Plex Mono for live data -->
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link
-    href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;600&display=swap"
+    href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
     rel="stylesheet"
   />
 
@@ -40,11 +40,16 @@
   <!-- ============ HERO ============ -->
   <section class="hero">
     <div class="hero__text">
-      <p class="hero__eyebrow">Edge AI Detection System</p>
+      <p class="hero__eyebrow"><span class="hero__eyebrow-dot"></span> Live edge inference demo</p>
       <h1 class="hero__title">Veri<span class="hero__title-accent">FIRE</span></h1>
       <p class="hero__subtitle">
-        Edge AI fire detection that distinguishes real hazards from cooking, steam, dust, and vaping.
+        A smoke detector that understands context — separating real fire from cooking, steam, dust, and vaping in real time.
       </p>
+      <div class="hero__proof" aria-label="Product highlights">
+        <span>100% on-device</span>
+        <span>6-sensor fusion</span>
+        <span>Works offline</span>
+      </div>
       <div class="hero__actions">
         <button id="demoModeBtn" class="btn btn--danger">
           <span class="btn__icon" aria-hidden="true">&#9889;</span>
@@ -54,13 +59,14 @@
           Reset to Normal
         </button>
       </div>
+      <p class="hero__demo-note">Judge demo: trigger a simulated fire signature and watch the full dashboard respond.</p>
     </div>
 
     <!-- LIVE CAMERA FEED (compact card, sits in the hero's open space) -->
     <div class="hero__camera" aria-labelledby="cameraTitle">
       <div class="hero__camera-header">
         <h2 id="cameraTitle" class="hero__camera-title">Live Camera Feed</h2>
-        <span class="hero__camera-meta" id="cameraMeta">Local device</span>
+        <span class="hero__camera-meta" id="cameraMeta">OAK camera · local stream</span>
       </div>
 
       <div class="camera-card">
@@ -139,7 +145,7 @@
     <section class="panel" aria-labelledby="sensorHealthTitle">
       <div class="panel__header">
         <h2 id="sensorHealthTitle" class="panel__title">Sensor Health</h2>
-        <span class="panel__meta">6 devices monitored</span>
+        <span class="panel__meta" id="sensorHealthMeta">2 devices monitored</span>
       </div>
       <div class="sensor-grid" id="sensorHealthGrid">
         <!-- sensor health cards injected by script.js -->
@@ -182,7 +188,7 @@
   </main>
 
   <footer class="footer">
-    <p>VeriFIRE Monitoring Console &middot; Frontend Demo &middot; Mock Data Mode</p>
+    <p>VeriFIRE · Edge AI safety system · Hackathon prototype</p>
   </footer>
 
   <script src="script.js"></script>
