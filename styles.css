@@ -1,31 +1,31 @@
 /* =========================================================
    VeriFIRE Dashboard — Stylesheet
-   Dark industrial monitoring theme, orange/red accent system
+   Smoky medium-light industrial monitoring theme, orange/red accent system
    ========================================================= */
 
 :root {
   /* ---- Surface colors ---- */
-  --bg-void: #0b0d10;
-  --bg-body: radial-gradient(circle at 15% 0%, #14171b 0%, #0b0d10 45%), #0b0d10;
-  --bg-panel: #14171b;
-  --bg-panel-raised: #1a1e23;
-  --bg-panel-hover: #1e2329;
-  --border-subtle: #23282f;
-  --border-strong: #31373f;
+  --bg-void: #303842;
+  --bg-body: radial-gradient(circle at 15% 0%, #66717d 0%, #46505b 42%, #303842 100%), #39424c;
+  --bg-panel: #5a6570;
+  --bg-panel-raised: #687480;
+  --bg-panel-hover: #74818d;
+  --border-subtle: #7d8994;
+  --border-strong: #9aa5af;
 
   /* ---- Text ---- */
-  --text-primary: #eceef0;
-  --text-secondary: #9aa2ab;
-  --text-tertiary: #6b7480;
+  --text-primary: #f5f1eb;
+  --text-secondary: #d4d9de;
+  --text-tertiary: #b1bac3;
 
   /* ---- Brand / accent (orange-red industrial signal) ---- */
-  --accent-fire-500: #ff6a2b;
-  --accent-fire-600: #ea4a1f;
-  --accent-fire-700: #c93815;
-  --accent-ember-500: #ff3b3b;
-  --accent-amber-500: #ffb020;
-  --accent-safe-500: #34c778;
-  --accent-info-500: #4c9ffe;
+  --accent-fire-500: #ff7a3d;
+  --accent-fire-600: #e85b2b;
+  --accent-fire-700: #bd431f;
+  --accent-ember-500: #ff5151;
+  --accent-amber-500: #ffb83e;
+  --accent-safe-500: #45cf83;
+  --accent-info-500: #69aef7;
 
   /* ---- Status semantics ---- */
   --state-safe: var(--accent-safe-500);
@@ -41,8 +41,8 @@
   --radius-lg: 20px;
   --radius-md: 14px;
   --radius-sm: 9px;
-  --shadow-panel: 0 1px 0 rgba(255, 255, 255, 0.02) inset, 0 12px 30px -14px rgba(0, 0, 0, 0.6);
-  --shadow-raised: 0 18px 40px -18px rgba(0, 0, 0, 0.7);
+  --shadow-panel: 0 1px 0 rgba(255, 255, 255, 0.10) inset, 0 16px 34px -20px rgba(10, 14, 18, 0.48);
+  --shadow-raised: 0 18px 40px -22px rgba(10, 14, 18, 0.58);
 
   --transition-fast: 150ms ease;
   --transition-med: 350ms cubic-bezier(0.4, 0, 0.2, 1);
@@ -106,7 +106,7 @@ button {
   border-bottom: 1px solid var(--border-subtle);
   position: sticky;
   top: 0;
-  background: rgba(11, 13, 16, 0.85);
+  background: rgba(58, 67, 77, 0.90);
   backdrop-filter: blur(10px);
   z-index: 50;
 }
@@ -268,7 +268,7 @@ button {
 .btn--danger {
   background: linear-gradient(135deg, var(--accent-fire-500), var(--accent-ember-500));
   border-color: transparent;
-  color: #1a0800;
+  color: #ffffff;
   box-shadow: 0 8px 24px -10px rgba(255, 80, 30, 0.6);
 }
 
@@ -768,7 +768,7 @@ button {
   aspect-ratio: 16 / 10;
   border-radius: var(--radius-md);
   overflow: hidden;
-  background: linear-gradient(160deg, #101317, #06070a);
+  background: linear-gradient(160deg, #ded6cc, #cfc5b9);
   border: 1px solid var(--border-subtle);
   box-shadow: var(--shadow-raised);
 }
@@ -783,7 +783,7 @@ button {
   height: 100%;
   object-fit: cover;
   display: block;
-  background: #06070a;
+  background: #d4cabf;
   /* Many webcam drivers (esp. on Windows) output an already-mirrored
      preview by default. Flip it back so left/right match reality —
      this is a monitoring feed, not a selfie view. */
@@ -801,7 +801,7 @@ button {
   gap: 10px;
   text-align: center;
   padding: 20px;
-  background: rgba(10, 12, 14, 0.9);
+  background: rgba(239, 232, 223, 0.94);
   backdrop-filter: blur(2px);
 }
 
@@ -851,9 +851,10 @@ button {
   letter-spacing: 0.05em;
   padding: 5px 10px;
   border-radius: 999px;
-  color: var(--text-primary);
-  background: rgba(10, 12, 14, 0.75);
-  border: 1px solid var(--border-strong);
+  color: #fff8ef;
+  background: rgba(46, 40, 35, 0.78);
+  border: 1px solid rgba(255, 248, 239, 0.22);
+  box-shadow: 0 4px 14px rgba(48, 39, 31, 0.18);
   display: inline-flex;
   align-items: center;
   gap: 6px;
@@ -893,7 +894,7 @@ button {
   font-weight: 600;
   padding: 5px 10px;
   border-radius: var(--radius-sm);
-  background: rgba(10, 12, 14, 0.75);
+  background: rgba(46, 40, 35, 0.78);
   border: 1px solid var(--border-strong);
   letter-spacing: 0.04em;
 }
@@ -916,7 +917,7 @@ button {
 .camera-overlay--confidence {
   right: 10px;
   font-size: 0.75rem;
-  color: var(--text-primary);
+  color: #fff8ef;
 }
 
 /* =========================================================
