@@ -1246,10 +1246,23 @@ button {
     justify-content: center;
   }
   .hero__camera {
-    width: 100%;
-    max-width: 400px;
-    margin: 0 auto;
-  }
+  /* Change these values to make it fit better */
+  width: 100%; 
+  max-width: 500px; 
+  min-width: 320px; 
+  
+  flex-shrink: 0;
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  background: rgba(126, 200, 214, 0.04);
+  backdrop-filter: blur(10px);
+  position: relative;
+}
+
   .hero__demo-note {
     margin-left: auto;
     margin-right: auto;

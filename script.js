@@ -38,10 +38,12 @@
       sensors: [
         { id: "smoke", name: "Smoke Sensor", signal: 97 },
         { id: "humidity", name: "Humidity", signal: 96 },
+        { id: "temperature", name: "Temperature Sensor", signal: 98 }
       ],
       environment: {
         humidity: { label: "Humidity", unit: "%RH", value: 41, min: 0, max: 100, warn: null, danger: null },
         smoke: { label: "Smoke Level", unit: "ppm", value: 12, min: 0, max: 500, warn: 150, danger: 300 },
+        temperature: { label: "Temperature", unit: "°C", value: 22, min: 10, max: 50, warn: 35, danger: 45 }
       },
       classification: {
         fire: 2,
@@ -71,6 +73,7 @@
       const env = live.environment;
       env.humidity.value = Math.round(jitter(env.humidity.value, 1, 35, 55));
       env.smoke.value = Math.round(jitter(env.smoke.value, 2, 5, 25));
+      env.temperature.value = Math.round(jitter(env.temperature.value, 0.5, 20, 25));
 
       // Classification confidences stay low & noisy, cooking slightly dominant occasionally
       const c = live.classification;
