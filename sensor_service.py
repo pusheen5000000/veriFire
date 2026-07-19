@@ -16,10 +16,11 @@ import argparse
 import json
 import math
 import os
-import select
+import queue
 import signal
 import subprocess
 import sys
+import threading
 import time
 from pathlib import Path
 from statistics import median
@@ -181,29 +182,43 @@ def read_pcf8591(bus_number: int, address: int, channel: int) -> float:
 
 
 class QnxSerial:
-    """Minimal non-blocking reader for QNX's /dev/ser1; no pyserial needed."""
+    """Background UART reader for QNX's PL011 device; no pyserial needed."""
 
     def __init__(self, port: str) -> None:
         try:
-            self.fd = os.open(port, os.O_RDONLY | os.O_NONBLOCK)
+            # A normal blocking read works with devc-serpl011-rpi5, whereas
+            # non-blocking readiness polling can miss data on this driver.
+            self.fd = os.open(port, os.O_RDONLY)
         except OSError as exc:
             raise RuntimeError(
-                f"Cannot open {port}. Start devc-serpl011-rpi5 first; QNX UART is /dev/ser1."
+                f"Cannot open {port}. Start devc-serpl011-rpi5 first."
             ) from exc
         self.buffer = b""
+        self.chunks: queue.SimpleQueue[bytes] = queue.SimpleQueue()
+        self.closed = False
+        self.reader = threading.Thread(target=self._read_forever, daemon=True)
+        self.reader.start()
+
+    def _read_forever(self) -> None:
+        while not self.closed:
+            try:
+                chunk = os.read(self.fd, 4096)
+            except OSError:
+                return
+            if chunk:
+                self.chunks.put(chunk)
 
     def lines(self) -> list[str]:
-        ready, _, _ = select.select([self.fd], [], [], 0)
-        if not ready:
-            return []
-        try:
-            self.buffer += os.read(self.fd, 4096)
-        except BlockingIOError:
-            return []
+        while True:
+            try:
+                self.buffer += self.chunks.get_nowait()
+            except queue.Empty:
+                break
         complete, _, self.buffer = self.buffer.rpartition(b"\n")
         return [line.decode("utf-8", errors="replace").strip() for line in complete.splitlines()]
 
     def close(self) -> None:
+        self.closed = True
         os.close(self.fd)
 
 
