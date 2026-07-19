@@ -976,10 +976,8 @@ button {
   object-fit: cover;
   display: block;
   background: #10161c;
-  /* Many webcam drivers (esp. on Windows) output an already-mirrored
-     preview by default. Flip it back so left/right match reality —
-     this is a monitoring feed, not a selfie view. */
-  transform: scaleX(-1);
+  /* Raspberry Pi camera feeds should render as-is for a monitoring view. */
+  transform: none;
 }
 
 /* ---- Loading / error overlays fill the frame ---- */

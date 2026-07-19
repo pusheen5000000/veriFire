@@ -25,6 +25,12 @@
   };
 
   const UPDATE_INTERVAL_MS = 1000;
+  const DEFAULT_CAMERA_STREAM_URL = "/stream.mjpg";
+  const CAMERA_STREAM_URL = (() => {
+    const params = new URLSearchParams(window.location.search);
+    const configuredUrl = window.VERIFIRE_CAMERA_STREAM_URL || params.get("camera") || params.get("stream");
+    return (configuredUrl || DEFAULT_CAMERA_STREAM_URL).trim();
+  })();
 
   /* =========================================================
      MOCK DATA LAYER
@@ -197,8 +203,8 @@
      (i.e. what the real backend/edge model would report).
      ========================================================= */
   const Camera = (function () {
-    let mediaStream = null;
     let isRunning = false;
+    let activeSource = "";
 
     /** Switches the visible state of the camera frame: "loading" | "live" | "error" */
     function setFrameState(mode) {
@@ -216,51 +222,51 @@
       el.cameraBadge.textContent = labels[status] || status;
     }
 
-    /** Maps a getUserMedia error to a clean, human-readable message */
-    function describeError(err) {
-      switch (err && err.name) {
-        case "NotAllowedError":
-        case "PermissionDeniedError":
-          return "Camera access was denied. Enable camera permission in your browser settings and try again.";
-        case "NotFoundError":
-        case "DevicesNotFoundError":
-          return "No camera was found on this device.";
-        case "NotReadableError":
-          return "The camera is already in use by another application.";
-        default:
-          return "Unable to access the camera. Please check your device and try again.";
-      }
+    /** Resolves the configured stream URL against the current page. */
+    function getStreamUrl() {
+      const url = new URL(CAMERA_STREAM_URL, window.location.href);
+      url.searchParams.set("_", Date.now().toString());
+      return url.toString();
     }
 
-    /** Requests camera access and attaches the stream to the <video> element */
-    async function start() {
-      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-        setBadge("unavailable");
-        setFrameState("error");
-        el.cameraErrorText.textContent = "This browser does not support camera access.";
-        return;
-      }
+    /** Maps a stream failure to a clean, human-readable message */
+    function describeError(err) {
+      if (err && err.message) return err.message;
+      return `Unable to load the camera stream from ${CAMERA_STREAM_URL}. Check the Raspberry Pi stream server and try again.`;
+    }
 
+    /** Requests the Pi camera stream and attaches it to the <img> element */
+    async function start() {
       setBadge("connecting");
       setFrameState("loading");
       el.cameraToggleBtn.disabled = true;
 
       try {
-        mediaStream = await navigator.mediaDevices.getUserMedia({
-          video: { facingMode: "user" },
-          audio: false,
-        });
-        el.cameraVideo.srcObject = mediaStream;
+        const sourceUrl = getStreamUrl();
+        activeSource = sourceUrl;
 
-        // Some browsers don't auto-trigger playback when srcObject is set
-        // dynamically after the page has already loaded, even with the
-        // `autoplay` attribute present. Explicitly starting playback here
-        // avoids a "granted but frozen/black" video.
-        try {
-          await el.cameraVideo.play();
-        } catch (playErr) {
-          console.warn("Video playback did not start automatically:", playErr);
-        }
+        await new Promise((resolve, reject) => {
+          const cleanup = () => {
+            el.cameraVideo.removeEventListener("load", onLoad);
+            el.cameraVideo.removeEventListener("error", onError);
+          };
+
+          const onLoad = () => {
+            if (activeSource !== sourceUrl) return;
+            cleanup();
+            resolve();
+          };
+
+          const onError = () => {
+            if (activeSource !== sourceUrl) return;
+            cleanup();
+            reject(new Error(`Unable to load the camera stream from ${CAMERA_STREAM_URL}.`));
+          };
+
+          el.cameraVideo.addEventListener("load", onLoad);
+          el.cameraVideo.addEventListener("error", onError);
+          el.cameraVideo.src = sourceUrl;
+        });
 
         isRunning = true;
         setBadge("live");
@@ -272,20 +278,19 @@
         setBadge("unavailable");
         setFrameState("error");
         el.cameraErrorText.textContent = describeError(err);
+        el.cameraToggleBtn.textContent = "Start Camera";
+        el.cameraToggleBtn.disabled = false;
       }
     }
 
     /** Stops all tracks and releases the camera */
     function stop() {
-      if (mediaStream) {
-        mediaStream.getTracks().forEach((track) => track.stop());
-        mediaStream = null;
-      }
-      el.cameraVideo.srcObject = null;
+      activeSource = "";
+      el.cameraVideo.removeAttribute("src");
       isRunning = false;
       setBadge("unavailable");
       setFrameState("error");
-      el.cameraErrorText.textContent = "Camera stopped.";
+      el.cameraErrorText.textContent = "Camera stream stopped.";
       el.cameraToggleBtn.textContent = "Start Camera";
       el.cameraToggleBtn.disabled = false;
     }
