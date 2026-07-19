@@ -1,0 +1,7 @@
+[Desktop Entry]
+Type=Application
+Name=VeriFire Hardware Status
+Comment=Initialize the active buzzer safely and show live sensor readings on the LCD
+Exec=/data/home/qnxuser/verifire_start.sh
+Terminal=false
+X-GNOME-Autostart-enabled=true

@@ -278,34 +278,7 @@
       </div>
     </section>
 
-    <!-- 2. SENSOR HEALTH -->
-    <section
-      class="panel"
-      aria-labelledby="sensorHealthTitle"
-    >
-      <div class="panel__header">
-        <h2
-          id="sensorHealthTitle"
-          class="panel__title"
-        >
-          Sensor Health
-        </h2>
-
-        <span
-          class="panel__meta"
-          id="sensorHealthMeta"
-        >
-          3 devices monitored
-        </span>
-      </div>
-
-      <div
-        class="sensor-grid"
-        id="sensorHealthGrid"
-      ></div>
-    </section>
-
-    <!-- 3. ENVIRONMENTAL READINGS -->
+    <!-- 2. ENVIRONMENTAL READINGS -->
     <section
       class="panel"
       aria-labelledby="envReadingsTitle"
@@ -318,8 +291,9 @@
           Environmental Readings
         </h2>
 
-        <span class="panel__meta">
-          Refreshing every 1s
+        <span class="env-status" id="envStatus" data-state="normal">
+          <span class="env-status__dot" aria-hidden="true"></span>
+          <span id="envStatusLabel">Normal</span>
         </span>
       </div>
 
@@ -327,7 +301,37 @@
         class="env-grid"
         id="envReadingsGrid"
       >
-        <!-- Temperature and humidity injected by script.js -->
+        <!-- Live gas, humidity, and temperature injected by script.js -->
+      </div>
+    </section>
+
+    <!-- 3. ENVIRONMENTAL TRENDS -->
+    <section
+      class="panel"
+      aria-labelledby="envChartTitle"
+    >
+      <div class="panel__header">
+        <h2 id="envChartTitle" class="panel__title">
+          Environmental Trends
+        </h2>
+
+        <span class="panel__meta">
+          Latest 60 readings
+        </span>
+      </div>
+
+      <div class="trend-chart">
+        <canvas
+          id="environmentChart"
+          class="trend-chart__canvas"
+          aria-label="Line plot of gas, humidity, and temperature readings"
+        ></canvas>
+
+        <div class="trend-chart__legend" aria-hidden="true">
+          <span data-series="gas">Gas (ADC counts)</span>
+          <span data-series="humidity">Humidity (% RH)</span>
+          <span data-series="temperature">Temperature (&deg;C)</span>
+        </div>
       </div>
     </section>
 

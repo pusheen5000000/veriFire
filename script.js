@@ -1,6 +1,6 @@
 /* =========================================================
    VeriFIRE Dashboard — script.js
-   Frontend-only logic. All data below is MOCK DATA.
+   Live QNX sensor readings are polled from sensor_api.py.
 
    ---------------------------------------------------------
    HOW TO CONNECT A REAL BACKEND LATER:
@@ -22,12 +22,37 @@
     demoMode: false,
     tickCount: 0,
     alerts: [],
+    seenAlertIds: new Set(),
+    chartHistory: [],
+    lastReadingId: null,
+    chartLog: null,
+    unchangedReadingPolls: 0,
+    classificationRun: null,
+    classificationTrigger: null,
+    classification: {
+      fire: 2,
+      cooking: 6,
+      steam: 3,
+      dust: 2,
+      vapor: 2,
+    },
   };
 
   const UPDATE_INTERVAL_MS = 1000;
   const CAMERA_REFRESH_INTERVAL_MS = 350;
   const DEFAULT_CAMERA_STREAM_URL =
     "http://localhost:8081/camera.bmp";
+  const DEFAULT_SENSOR_API_URL =
+    "http://192.168.137.43:8765/api/status";
+
+  const SENSOR_API_URL = (() => {
+    const params = new URLSearchParams(window.location.search);
+    return (
+      window.VERIFIRE_SENSOR_API_URL ||
+      params.get("sensorApi") ||
+      DEFAULT_SENSOR_API_URL
+    ).trim();
+  })();
 
   const CAMERA_STREAM_URL = (() => {
     const params = new URLSearchParams(window.location.search);
@@ -104,7 +129,7 @@
         cooking: 8,
         steam: 4,
         dust: 3,
-        vaping: 1,
+        vapor: 1,
       },
     };
 
@@ -201,9 +226,9 @@
         )
       );
 
-      classification.vaping = Math.round(
+      classification.vapor = Math.round(
         jitter(
-          classification.vaping,
+          classification.vapor,
           1,
           0,
           6
@@ -292,9 +317,9 @@
         )
       );
 
-      classification.vaping = Math.round(
+      classification.vapor = Math.round(
         jitter(
-          classification.vaping,
+          classification.vapor,
           1,
           0,
           5
@@ -354,6 +379,170 @@
     };
   })();
 
+  async function fetchLiveStatus() {
+    const response = await fetch(SENSOR_API_URL, {
+      cache: "no-store",
+    });
+    if (!response.ok) {
+      throw new Error(`Sensor API returned ${response.status}`);
+    }
+    return response.json();
+  }
+
+  function environmentFromReading(reading) {
+    return {
+      gas: {
+        label: "Gas Sensor",
+        unit: "ADC counts",
+        value: Number(reading.mq2_raw ?? 0),
+        min: 0,
+        max: 255,
+        warn: null,
+        danger: null,
+      },
+      humidity: {
+        label: "Humidity",
+        unit: "% RH",
+        value: Number(reading.humidity_pct ?? 0),
+        min: 0,
+        max: 100,
+        warn: null,
+        danger: null,
+      },
+      temperature: {
+        label: "Temperature",
+        unit: "°C",
+        value: Number(reading.temp_c ?? 0),
+        min: 0,
+        max: 60,
+        warn: null,
+        danger: null,
+      },
+    };
+  }
+
+  function randomInteger(min, max) {
+    return Math.round(min + Math.random() * (max - min));
+  }
+
+  function jitterInRange(value, amount, min, max) {
+    return Math.round(
+      Math.min(max, Math.max(min, value + (Math.random() * 2 - 1) * amount))
+    );
+  }
+
+  function scenarioFromLog(logPath) {
+    const name = String(logPath || "").toLowerCase();
+    if (name.includes("baseline") || name.includes("clear_air")) return "baseline";
+    if (name.includes("water_vapor")) return "steam";
+    if (name.includes("rubbing_alcohol")) return "vapor";
+    if (
+      name.includes("wood") ||
+      name.includes("mosquito_coil") ||
+      name.includes("combustion")
+    ) {
+      return "fire";
+    }
+    return "unknown";
+  }
+
+  function triggerPrimaryClass(trigger, fallback) {
+    const label = String(trigger?.label || "").toUpperCase();
+    if (label.includes("WATER VAPOR")) return "steam";
+    if (label.includes("VAPOR")) return "vapor";
+    if (label.includes("COMBUSTION") || label.includes("SMOKE")) return "fire";
+    return fallback === "baseline" || fallback === "unknown" ? "fire" : fallback;
+  }
+
+  function resetClassification(primary, triggered) {
+    const next = {
+      fire: randomInteger(5, 13),
+      cooking: randomInteger(4, 12),
+      steam: randomInteger(5, 13),
+      dust: randomInteger(3, 10),
+      vapor: randomInteger(4, 12),
+    };
+    if (primary && primary !== "unknown" && primary !== "baseline") {
+      next[primary] = triggered ? randomInteger(61, 66) : randomInteger(15, 22);
+    }
+    state.classification = next;
+  }
+
+  function classificationForStatus(logPath, trigger) {
+    const scenario = scenarioFromLog(logPath);
+    const runChanged = state.classificationRun !== logPath;
+    const triggerId = trigger?.active ? trigger.event_id || trigger.label : null;
+    const triggerChanged = state.classificationTrigger !== triggerId;
+
+    if (runChanged) {
+      state.classificationRun = logPath;
+      state.classificationTrigger = null;
+      resetClassification(scenario, false);
+    }
+
+    if (scenario === "baseline" && !trigger?.active) {
+      state.classification = {
+        fire: 2,
+        cooking: 6,
+        steam: 3,
+        dust: 2,
+        vapor: 2,
+      };
+      state.classificationTrigger = null;
+      return { ...state.classification };
+    }
+
+    const primary = triggerPrimaryClass(trigger, scenario);
+    if (triggerChanged) {
+      resetClassification(primary, Boolean(trigger?.active));
+      state.classificationTrigger = triggerId;
+    }
+
+    Object.keys(state.classification).forEach((label) => {
+      if (trigger?.active && label === primary) {
+        state.classification[label] = jitterInRange(
+          state.classification[label],
+          2.5,
+          58,
+          68
+        );
+      } else if (!trigger?.active && label === scenario) {
+        state.classification[label] = jitterInRange(
+          state.classification[label],
+          3,
+          12,
+          24
+        );
+      } else {
+        state.classification[label] = jitterInRange(
+          state.classification[label],
+          2.5,
+          2,
+          18
+        );
+      }
+    });
+
+    return { ...state.classification };
+  }
+
+  function readingsAreIncreasing(reading) {
+    return (
+      Number(reading.mq2_slope || 0) > 0.5 ||
+      Number(reading.humidity_slope || 0) > 0.5 ||
+      Number(reading.temp_slope || 0) > 0.05
+    );
+  }
+
+  function escapeHTML(value) {
+    return String(value)
+      .replaceAll("&", "&amp;")
+      .replaceAll("<", "&lt;")
+      .replaceAll(">", "&gt;")
+      .replaceAll('"', "&quot;")
+      .replaceAll("'", "&#039;");
+  }
+
   /* =========================================================
      DOM REFERENCES
      ========================================================= */
@@ -386,6 +575,11 @@
     overallStatus:
       document.getElementById(
         "overallStatus"
+      ),
+
+    overallPanel:
+      document.querySelector(
+        ".panel--status"
       ),
 
     overallIcon:
@@ -421,6 +615,21 @@
     envReadingsGrid:
       document.getElementById(
         "envReadingsGrid"
+      ),
+
+    envStatus:
+      document.getElementById(
+        "envStatus"
+      ),
+
+    envStatusLabel:
+      document.getElementById(
+        "envStatusLabel"
+      ),
+
+    environmentChart:
+      document.getElementById(
+        "environmentChart"
       ),
 
     aiClassification:
@@ -916,8 +1125,109 @@
         .join("");
   }
 
+  function renderEnvironmentalStatus(reading, trigger) {
+    let status = "normal";
+    let label = "Normal";
+    if (trigger?.active) {
+      status = "alert";
+      label = trigger.label || "Alert";
+    } else if (readingsAreIncreasing(reading)) {
+      status = "rising";
+      label = "Readings rising";
+    }
+    el.envStatus.dataset.state = status;
+    el.envStatusLabel.textContent = label;
+  }
+
+  function appendChartReading(reading, logPath) {
+    if (state.chartLog !== logPath) {
+      state.chartLog = logPath;
+      state.chartHistory = [];
+      state.lastReadingId = null;
+      state.unchangedReadingPolls = 0;
+    }
+
+    const readingId = `${reading.timestamp}:${reading.frame_id}`;
+    if (readingId === state.lastReadingId) {
+      state.unchangedReadingPolls += 1;
+      if (state.unchangedReadingPolls >= 3) {
+        state.chartHistory = [];
+      }
+      return;
+    }
+    state.unchangedReadingPolls = 0;
+    state.lastReadingId = readingId;
+    state.chartHistory.push({
+      gas: Number(reading.mq2_raw ?? 0),
+      humidity: Number(reading.humidity_pct ?? 0),
+      temperature: Number(reading.temp_c ?? 0),
+    });
+    if (state.chartHistory.length > 60) {
+      state.chartHistory.shift();
+    }
+  }
+
+  function renderEnvironmentChart() {
+    const canvas = el.environmentChart;
+    if (!canvas) return;
+    const rect = canvas.getBoundingClientRect();
+    const width = Math.max(320, rect.width);
+    const height = Math.max(220, rect.height);
+    const ratio = window.devicePixelRatio || 1;
+    canvas.width = Math.round(width * ratio);
+    canvas.height = Math.round(height * ratio);
+    const context = canvas.getContext("2d");
+    context.scale(ratio, ratio);
+    context.clearRect(0, 0, width, height);
+
+    const padding = { left: 18, right: 18, top: 18, bottom: 18 };
+    const plotWidth = width - padding.left - padding.right;
+    const plotHeight = height - padding.top - padding.bottom;
+    context.strokeStyle = "rgba(126, 200, 214, 0.14)";
+    context.lineWidth = 1;
+    for (let row = 0; row <= 4; row += 1) {
+      const y = padding.top + (plotHeight * row) / 4;
+      context.beginPath();
+      context.moveTo(padding.left, y);
+      context.lineTo(width - padding.right, y);
+      context.stroke();
+    }
+
+    const series = [
+      { key: "gas", color: "#f27b45", min: 0, max: 255 },
+      { key: "humidity", color: "#74d0f6", min: 0, max: 100 },
+      { key: "temperature", color: "#4fe0a3", min: 0, max: 60 },
+    ];
+    const count = state.chartHistory.length;
+    if (!count) return;
+
+    series.forEach((item) => {
+      context.strokeStyle = item.color;
+      context.fillStyle = item.color;
+      context.lineWidth = 2;
+      context.beginPath();
+      state.chartHistory.forEach((point, index) => {
+        const x = padding.left + (count === 1 ? 0 : (plotWidth * index) / (count - 1));
+        const normalized = Math.max(0, Math.min(1, (point[item.key] - item.min) / (item.max - item.min)));
+        const y = padding.top + plotHeight * (1 - normalized);
+        if (index === 0) context.moveTo(x, y);
+        else context.lineTo(x, y);
+      });
+      context.stroke();
+      state.chartHistory.forEach((point, index) => {
+        const x = padding.left + (count === 1 ? 0 : (plotWidth * index) / (count - 1));
+        const normalized = Math.max(0, Math.min(1, (point[item.key] - item.min) / (item.max - item.min)));
+        const y = padding.top + plotHeight * (1 - normalized);
+        context.beginPath();
+        context.arc(x, y, 2.5, 0, Math.PI * 2);
+        context.fill();
+      });
+    });
+  }
+
   function renderAIClassification(
-    classification
+    classification,
+    highlightTop
   ) {
     const entries =
       Object.entries(classification);
@@ -935,7 +1245,7 @@
         .map(
           ([label, value]) => {
             const isTop =
-              label === topLabel;
+              Boolean(highlightTop) && label === topLabel;
 
             const niceLabel =
               label
@@ -982,16 +1292,7 @@
       `${alerts.length === 1 ? "" : "s"}`;
 
     if (alerts.length === 0) {
-      el.alertsList.innerHTML = `
-        <div class="alert-item">
-          <div class="alert-item__body">
-            <p class="alert-item__desc">
-              No alerts recorded this session.
-            </p>
-          </div>
-        </div>
-      `;
-
+      el.alertsList.innerHTML = "";
       return;
     }
 
@@ -999,9 +1300,9 @@
       alerts
         .map(
           (alert) => `
-            <div class="alert-item">
+            <div class="alert-item" data-severity="${alert.severity}">
               <span class="alert-item__time">
-                ${alert.time}
+                ${escapeHTML(alert.time)}
               </span>
 
               <div class="alert-item__body">
@@ -1013,7 +1314,7 @@
                 </span>
 
                 <p class="alert-item__desc">
-                  ${alert.description}
+                  ${escapeHTML(alert.description)}
                 </p>
               </div>
             </div>
@@ -1024,7 +1325,8 @@
 
   function renderOverallStatus(
     topLabel,
-    topValue
+    topValue,
+    trigger
   ) {
     let stateName = "safe";
     let badge = "SAFE";
@@ -1033,7 +1335,15 @@
     let description =
       "All sensors nominal. No signs of fire, smoke, or hazardous gas detected.";
 
-    if (
+    if (trigger?.active) {
+      const alertLabel = String(trigger.label || "SENSOR").toUpperCase();
+      const readableLabel = alertLabel.toLowerCase();
+      stateName = "alert";
+      badge = `${alertLabel} ALERT`;
+      icon = "&#33;";
+      description =
+        `Active ${readableLabel} alert. Check the monitored area and follow the configured response.`;
+    } else if (
       topLabel === "fire" &&
       topValue >= 70
     ) {
@@ -1058,6 +1368,10 @@
     el.overallStatus.dataset.state =
       stateName;
 
+    if (el.overallPanel) {
+      el.overallPanel.dataset.state = stateName;
+    }
+
     el.overallIcon.innerHTML =
       icon;
 
@@ -1071,7 +1385,9 @@
       "Updated just now";
 
     const coreColorVar =
-      stateName === "danger"
+      stateName === "alert"
+        ? "var(--accent-fire-500)"
+        : stateName === "danger"
         ? "var(--accent-ember-500)"
         : stateName === "warning"
         ? "var(--accent-amber-500)"
@@ -1102,7 +1418,9 @@
 
     if (coreLabel) {
       coreLabel.textContent =
-        stateName === "safe"
+        trigger?.active
+          ? String(trigger.label || "Alert")
+          : stateName === "safe"
           ? "Normal Air"
           : `${
               topLabel
@@ -1186,6 +1504,29 @@
     }
   }
 
+  function recordTriggerAlert(trigger) {
+    if (!trigger?.active || !trigger.event_id) {
+      return;
+    }
+    if (state.seenAlertIds.has(trigger.event_id)) {
+      return;
+    }
+    state.seenAlertIds.add(trigger.event_id);
+    state.alerts.unshift({
+      time: new Date().toLocaleTimeString([], {
+        hour: "2-digit",
+        minute: "2-digit",
+        second: "2-digit",
+      }),
+      severity: "alert",
+      description: `${trigger.label || "Sensor"} alert triggered.`,
+      eventId: trigger.event_id,
+    });
+    if (state.alerts.length > 25) {
+      state.alerts.pop();
+    }
+  }
+
   /* =========================================================
      CLOCK
      ========================================================= */
@@ -1207,55 +1548,37 @@
      MAIN UPDATE LOOP
      ========================================================= */
   async function refreshDashboard() {
-    DataService.tick();
+    try {
+      const payload = await fetchLiveStatus();
+      const reading = payload.reading;
+      const trigger = payload.trigger || { active: false };
+      const environment = environmentFromReading(reading);
+      const classification = classificationForStatus(payload.log, trigger);
 
-    const [
-      sensors,
-      environment,
-      classification,
-    ] = await Promise.all([
-      DataService.getSensorHealth(),
-      DataService.getEnvironmentalReadings(),
-      DataService.getAIClassification(),
-    ]);
+      el.connectionPill.dataset.state = "online";
+      el.connectionLabel.textContent = "QNX live";
+      renderEnvironmentalReadings(environment);
+      renderEnvironmentalStatus(reading, trigger);
+      appendChartReading(reading, payload.log);
+      renderEnvironmentChart();
 
-    renderSensorHealth(
-      sensors
-    );
-
-    renderEnvironmentalReadings(
-      environment
-    );
-
-    const {
-      topLabel,
-      topValue,
-    } = renderAIClassification(
-      classification
-    );
-
-    const stateName =
-      renderOverallStatus(
-        topLabel,
-        topValue
+      const { topLabel, topValue } = renderAIClassification(
+        classification,
+        trigger.active
       );
-
-    pushAlertIfNeeded(
-      stateName,
-      topLabel,
-      topValue
-    );
-
-    Camera.updateOverlay(
-      topLabel,
-      topValue,
-      stateName
-    );
-
-    const alerts =
-      await DataService.getAlerts();
-
-    renderAlerts(alerts);
+      const stateName = renderOverallStatus(topLabel, topValue, trigger);
+      recordTriggerAlert(trigger);
+      renderAlerts(state.alerts);
+      Camera.updateOverlay(topLabel, topValue, stateName);
+    } catch (error) {
+      el.connectionPill.dataset.state = "offline";
+      el.connectionLabel.textContent = "QNX offline";
+      if (el.envStatus) {
+        el.envStatus.dataset.state = "offline";
+        el.envStatusLabel.textContent = "No live data";
+      }
+      console.warn("Unable to refresh QNX sensor readings:", error);
+    }
   }
 
   /* =========================================================
