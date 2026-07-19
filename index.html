@@ -3,11 +3,13 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
   <title>VeriFIRE — Edge AI Fire Detection Dashboard</title>
 
-  <!-- Fonts: Space Grotesk for a confident demo identity, IBM Plex Mono for live data -->
+  <!-- Fonts -->
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+
   <link
     href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
     rel="stylesheet"
@@ -15,6 +17,7 @@
 
   <link rel="stylesheet" href="styles.css" />
 </head>
+
 <body>
 
   <!-- ============ TOP NAVIGATION ============ -->
@@ -28,185 +31,441 @@
     </a>
 
     <div class="topnav__status">
-      <div class="status-pill" id="connectionPill" data-state="online">
+      <div
+        class="status-pill"
+        id="connectionPill"
+        data-state="online"
+      >
         <span class="status-pill__dot"></span>
-        <span class="status-pill__label" id="connectionLabel">Online</span>
+
+        <span
+          class="status-pill__label"
+          id="connectionLabel"
+        >
+          Online
+        </span>
       </div>
-      <div class="topnav__clock" id="liveClock">--:--:--</div>
+
+      <div
+        class="topnav__clock"
+        id="liveClock"
+      >
+        --:--:--
+      </div>
     </div>
   </header>
 
   <!-- ============ HERO ============ -->
   <section class="hero">
+
     <div class="hero__text">
-      <h1 class="hero__title">Veri<span class="hero__title-accent">FIRE</span></h1>
+      <h1 class="hero__title">
+        Veri<span class="hero__title-accent">FIRE</span>
+      </h1>
+
       <p class="hero__subtitle">
         We SMOKE ordinary detectors, bringing clarity to alarm-ing situations.
       </p>
+
       <div class="hero__actions">
-        <button id="demoModeBtn" class="btn btn--danger">
-          <span class="btn__icon" aria-hidden="true"></span>
+        <button
+          id="demoModeBtn"
+          class="btn btn--danger"
+        >
+          <span
+            class="btn__icon"
+            aria-hidden="true"
+          ></span>
+
           Simulate Fire Event
         </button>
-        <button id="resetModeBtn" class="btn btn--ghost" disabled>
+
+        <button
+          id="resetModeBtn"
+          class="btn btn--ghost"
+          disabled
+        >
           Reset to Normal
         </button>
       </div>
     </div>
 
-    <!-- LIVE CAMERA FEED (compact card, sits in the hero's open space) -->
-    <div class="hero__camera" aria-labelledby="cameraTitle">
+    <!-- LIVE CAMERA FEED -->
+    <div
+      class="hero__camera"
+      aria-labelledby="cameraTitle"
+    >
       <div class="hero__camera-header">
-        <h2 id="cameraTitle" class="hero__camera-title">Live Camera Feed</h2>
+        <h2
+          id="cameraTitle"
+          class="hero__camera-title"
+        >
+          Live Camera Feed
+        </h2>
       </div>
 
       <div class="camera-card">
-        <div class="camera-frame" id="cameraFrame">
-          <video id="cameraVideo" class="camera-video" autoplay playsinline muted></video>
 
-          <!-- Loading state shown while permission is being requested -->
-          <div class="camera-state camera-state--loading" id="cameraLoading">
-            <span class="camera-spinner" aria-hidden="true"></span>
-            <p class="camera-state__text">Requesting camera access…</p>
+        <div
+          class="camera-frame"
+          id="cameraFrame"
+        >
+          <!--
+            The JavaScript repeatedly reloads this image from:
+
+            http://localhost:8081/camera.bmp
+
+            The SSH tunnel must therefore be running on the laptop:
+
+            ssh -L 8081:localhost:8001 qnxuser@192.168.137.244
+          -->
+          <img
+            id="cameraVideo"
+            class="camera-video"
+            src="http://localhost:8081/camera.bmp"
+            alt="Live camera feed from the Raspberry Pi Camera Module 3"
+          />
+
+          <!-- Loading state -->
+          <div
+            class="camera-state camera-state--loading"
+            id="cameraLoading"
+          >
+            <span
+              class="camera-spinner"
+              aria-hidden="true"
+            ></span>
+
+            <p class="camera-state__text">
+              Connecting to Raspberry Pi camera…
+            </p>
           </div>
 
-          <!-- Error state shown on denial / no camera found -->
-          <div class="camera-state camera-state--error" id="cameraError" hidden>
-            <span class="camera-state__icon" aria-hidden="true">&#9888;</span>
-            <p class="camera-state__text" id="cameraErrorText">Camera unavailable.</p>
-            <button class="btn btn--ghost btn--small" id="cameraRetryBtn">Try Again</button>
+          <!-- Camera error state -->
+          <div
+            class="camera-state camera-state--error"
+            id="cameraError"
+            hidden
+          >
+            <span
+              class="camera-state__icon"
+              aria-hidden="true"
+            >
+              &#9888;
+            </span>
+
+            <p
+              class="camera-state__text"
+              id="cameraErrorText"
+            >
+              Raspberry Pi camera unavailable.
+            </p>
+
+            <button
+              class="btn btn--ghost btn--small"
+              id="cameraRetryBtn"
+            >
+              Try Again
+            </button>
           </div>
 
           <!-- Connection status badge -->
-          <span class="camera-badge" id="cameraBadge" data-state="connecting">Connecting</span>
+          <span
+            class="camera-badge"
+            id="cameraBadge"
+            data-state="connecting"
+          >
+            Connecting
+          </span>
 
-          <!-- AI classification overlays, synced with the AI Classification panel -->
-          <div class="camera-overlay camera-overlay--label" id="cameraClassOverlay" hidden>SAFE</div>
-          <div class="camera-overlay camera-overlay--confidence" id="cameraConfOverlay" hidden>98%</div>
+          <!-- AI classification overlays -->
+          <div
+            class="camera-overlay camera-overlay--label"
+            id="cameraClassOverlay"
+            hidden
+          >
+            SAFE
+          </div>
+
+          <div
+            class="camera-overlay camera-overlay--confidence"
+            id="cameraConfOverlay"
+            hidden
+          >
+            98%
+          </div>
         </div>
 
         <div class="camera-controls">
-          <button class="btn btn--danger btn--small" id="cameraToggleBtn">Stop Camera</button>
+          <button
+            class="btn btn--danger btn--small"
+            id="cameraToggleBtn"
+          >
+            Stop Camera
+          </button>
         </div>
       </div>
     </div>
 
-    <div class="hero__core" aria-hidden="true">
-      
-    </div>
+    <div
+      class="hero__core"
+      aria-hidden="true"
+    ></div>
   </section>
 
   <!-- ============ MAIN DASHBOARD ============ -->
   <main class="dashboard">
 
     <!-- 1. OVERALL STATUS -->
-    <section class="panel panel--status" aria-labelledby="overallStatusTitle">
+    <section
+      class="panel panel--status"
+      aria-labelledby="overallStatusTitle"
+    >
       <div class="panel__header">
-        <h2 id="overallStatusTitle" class="panel__title">Overall Status</h2>
-        <span class="panel__meta" id="overallUpdated">Updated just now</span>
+        <h2
+          id="overallStatusTitle"
+          class="panel__title"
+        >
+          Overall Status
+        </h2>
+
+        <span
+          class="panel__meta"
+          id="overallUpdated"
+        >
+          Updated just now
+        </span>
       </div>
 
-      <div class="overall-status" id="overallStatus" data-state="safe">
-        <div class="overall-status__indicator" id="overallIndicator">
+      <div
+        class="overall-status"
+        id="overallStatus"
+        data-state="safe"
+      >
+        <div
+          class="overall-status__indicator"
+          id="overallIndicator"
+        >
           <span class="overall-status__pulse"></span>
-          <span class="overall-status__pulse overall-status__pulse--delay"></span>
-          <span class="overall-status__icon" id="overallIcon">&#10003;</span>
+
+          <span
+            class="overall-status__pulse overall-status__pulse--delay"
+          ></span>
+
+          <span
+            class="overall-status__icon"
+            id="overallIcon"
+          >
+            &#10003;
+          </span>
         </div>
+
         <div class="overall-status__text">
-          <span class="overall-status__badge" id="overallBadge">SAFE</span>
-          <p class="overall-status__desc" id="overallDesc">
+          <span
+            class="overall-status__badge"
+            id="overallBadge"
+          >
+            SAFE
+          </span>
+
+          <p
+            class="overall-status__desc"
+            id="overallDesc"
+          >
             All sensors nominal. No signs of fire, smoke, or hazardous gas detected.
           </p>
         </div>
       </div>
     </section>
 
-   <!-- 2. SENSOR HEALTH -->
-    <section class="panel" aria-labelledby="sensorHealthTitle">
+    <!-- 2. SENSOR HEALTH -->
+    <section
+      class="panel"
+      aria-labelledby="sensorHealthTitle"
+    >
       <div class="panel__header">
-        <h2 id="sensorHealthTitle" class="panel__title">Sensor Health</h2>
-        <!-- Update this to 3 devices -->
-        <span class="panel__meta" id="sensorHealthMeta">3 devices monitored</span>
+        <h2
+          id="sensorHealthTitle"
+          class="panel__title"
+        >
+          Sensor Health
+        </h2>
+
+        <span
+          class="panel__meta"
+          id="sensorHealthMeta"
+        >
+          3 devices monitored
+        </span>
       </div>
-      <div class="sensor-grid" id="sensorHealthGrid"></div>
+
+      <div
+        class="sensor-grid"
+        id="sensorHealthGrid"
+      ></div>
     </section>
 
     <!-- 3. ENVIRONMENTAL READINGS -->
-    <section class="panel" aria-labelledby="envReadingsTitle">
+    <section
+      class="panel"
+      aria-labelledby="envReadingsTitle"
+    >
       <div class="panel__header">
-        <h2 id="envReadingsTitle" class="panel__title">Environmental Readings</h2>
-        <span class="panel__meta">Refreshing every 1s</span>
+        <h2
+          id="envReadingsTitle"
+          class="panel__title"
+        >
+          Environmental Readings
+        </h2>
+
+        <span class="panel__meta">
+          Refreshing every 1s
+        </span>
       </div>
-      <div class="env-grid" id="envReadingsGrid">
-        <!-- Temperature and Humidity will be injected here -->
+
+      <div
+        class="env-grid"
+        id="envReadingsGrid"
+      >
+        <!-- Temperature and humidity injected by script.js -->
       </div>
     </section>
 
     <!-- 4. AI CLASSIFICATION -->
-    <section class="panel" aria-labelledby="aiClassTitle">
+    <section
+      class="panel"
+      aria-labelledby="aiClassTitle"
+    >
       <div class="panel__header">
-        <h2 id="aiClassTitle" class="panel__title">AI Classification</h2>
-        <span class="panel__meta">Edge inference · on-device</span>
+        <h2
+          id="aiClassTitle"
+          class="panel__title"
+        >
+          AI Classification
+        </h2>
+
+        <span class="panel__meta">
+          Edge inference · on-device
+        </span>
       </div>
-      <div class="ai-class" id="aiClassification">
-        <!-- classification bars injected by script.js -->
+
+      <div
+        class="ai-class"
+        id="aiClassification"
+      >
+        <!-- Classification bars injected by script.js -->
       </div>
     </section>
 
     <!-- 5. ALERTS -->
-    <section class="panel panel--alerts" aria-labelledby="alertsTitle">
+    <section
+      class="panel panel--alerts"
+      aria-labelledby="alertsTitle"
+    >
       <div class="panel__header">
-        <h2 id="alertsTitle" class="panel__title">Alert History</h2>
-        <span class="panel__meta" id="alertCount">0 events</span>
+        <h2
+          id="alertsTitle"
+          class="panel__title"
+        >
+          Alert History
+        </h2>
+
+        <span
+          class="panel__meta"
+          id="alertCount"
+        >
+          0 events
+        </span>
       </div>
-      <div class="alerts-list" id="alertsList">
-        <!-- alert entries injected by script.js -->
+
+      <div
+        class="alerts-list"
+        id="alertsList"
+      >
+        <!-- Alert entries injected by script.js -->
       </div>
     </section>
 
     <!-- 6. ABOUT VERIFIRE -->
-    <section class="panel panel--about" aria-labelledby="aboutTitle">
+    <section
+      class="panel panel--about"
+      aria-labelledby="aboutTitle"
+    >
       <div class="panel__header">
-        <h2 id="aboutTitle" class="panel__title">About VeriFIRE</h2>
-        <span class="panel__meta">Edge AI · QNX · Hardware</span>
+        <h2
+          id="aboutTitle"
+          class="panel__title"
+        >
+          About VeriFIRE
+        </h2>
+
+        <span class="panel__meta">
+          Edge AI · QNX · Hardware
+        </span>
       </div>
 
       <div class="about-grid">
+
         <div class="about-copy">
           <p class="about-copy__lead">
             VeriFIRE is an edge-AI verification layer designed to work alongside existing smoke alarms.
           </p>
+
           <p>
             It combines smoke and humidity readings with rate-of-change patterns to distinguish likely
             cooking or steam events from developing fire-like conditions. All inference runs locally on
             the device, so the system remains responsive without depending on the cloud.
           </p>
+
           <p>
             VeriFIRE does not replace or silence a certified smoke alarm. It adds context, graded alerts,
             and sensor-health monitoring while preserving the original alarm as the primary safety layer.
           </p>
         </div>
 
-        <div class="about-points" aria-label="VeriFIRE system highlights">
+        <div
+          class="about-points"
+          aria-label="VeriFIRE system highlights"
+        >
           <div class="about-point">
-            <span class="about-point__index">01</span>
+            <span class="about-point__index">
+              01
+            </span>
+
             <div>
               <h3>Sensor fusion</h3>
-              <p>Smoke, humidity, and temporal change are evaluated together.</p>
+
+              <p>
+                Smoke, humidity, and temporal change are evaluated together.
+              </p>
             </div>
           </div>
+
           <div class="about-point">
-            <span class="about-point__index">02</span>
+            <span class="about-point__index">
+              02
+            </span>
+
             <div>
               <h3>On-device intelligence</h3>
-              <p>Local inference provides low latency and continues without cloud access.</p>
+
+              <p>
+                Local inference provides low latency and continues without cloud access.
+              </p>
             </div>
           </div>
+
           <div class="about-point">
-            <span class="about-point__index">03</span>
+            <span class="about-point__index">
+              03
+            </span>
+
             <div>
               <h3>Fail-safe by design</h3>
-              <p>The conventional alarm remains independent and fully operational.</p>
+
+              <p>
+                The conventional alarm remains independent and fully operational.
+              </p>
             </div>
           </div>
         </div>
@@ -216,9 +475,11 @@
   </main>
 
   <footer class="footer">
-    <p>VeriFIRE · Edge AI safety system · Hackathon prototype</p>
+    <p>
+      VeriFIRE · Edge AI safety system · Hackathon prototype
+    </p>
   </footer>
 
- <script src="script.js"></script>
+  <script src="script.js"></script>
 </body>
 </html>
