@@ -46,11 +46,10 @@
         temperature: { label: "Temperature", unit: "°C", value: 22, min: 10, max: 50, warn: 35, danger: 45 }
       },
       classification: {
-        fire: 2,
-        cooking: 8,
-        steam: 4,
-        dust: 3,
-        vaping: 1,
+        fire: 0,
+        smoke: 0,
+        steam: 0,
+        normal: 100,
       },
     };
 
@@ -75,13 +74,12 @@
       env.smoke.value = Math.round(jitter(env.smoke.value, 2, 5, 25));
       env.temperature.value = Math.round(jitter(env.temperature.value, 0.5, 20, 25));
 
-      // Classification confidences stay low & noisy, cooking slightly dominant occasionally
+      // AI classification is supplied by the backend when the camera is live.
       const c = live.classification;
-      c.fire = Math.round(jitter(c.fire, 1, 0, 6));
-      c.cooking = Math.round(jitter(c.cooking, 3, 2, 22));
-      c.steam = Math.round(jitter(c.steam, 2, 0, 12));
-      c.dust = Math.round(jitter(c.dust, 1.5, 0, 10));
-      c.vaping = Math.round(jitter(c.vaping, 1, 0, 6));
+      c.fire = 0;
+      c.smoke = 0;
+      c.steam = 0;
+      c.normal = 100;
     }
 
     function stepDemoFire() {
@@ -101,10 +99,9 @@
 
       const c = live.classification;
       c.fire = Math.min(99, Math.round(c.fire + 8 + Math.random() * 6));
-      c.cooking = Math.round(jitter(c.cooking, 2, 0, 15));
-      c.steam = Math.round(jitter(c.steam, 2, 0, 10));
-      c.dust = Math.round(jitter(c.dust, 1, 0, 8));
-      c.vaping = Math.round(jitter(c.vaping, 1, 0, 5));
+      c.smoke = Math.max(20, Math.round(c.fire * 0.35));
+      c.steam = 0;
+      c.normal = Math.max(0, 100 - c.fire);
     }
 
     return {
@@ -123,9 +120,35 @@
         return Promise.resolve(JSON.parse(JSON.stringify(live.environment)));
       },
 
-      /** Simulates GET /api/ai/classification */
-      getAIClassification() {
-        return Promise.resolve({ ...live.classification });
+      /** Runs YOLO inference on the current browser camera frame. */
+      async getAIClassification() {
+        if (state.demoMode) return { ...live.classification };
+
+        const video = document.getElementById("cameraVideo");
+        if (!video || video.readyState < 2 || video.videoWidth === 0) {
+          return { ...live.classification };
+        }
+
+        const canvas = document.createElement("canvas");
+        const width = 640;
+        const height = Math.round((video.videoHeight / video.videoWidth) * width) || 480;
+        canvas.width = width;
+        canvas.height = height;
+        canvas.getContext("2d").drawImage(video, 0, 0, width, height);
+
+        try {
+          const response = await fetch("/api/predict", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ image: canvas.toDataURL("image/jpeg", 0.75) }),
+          });
+          if (!response.ok) throw new Error(`Prediction failed: ${response.status}`);
+          const data = await response.json();
+          live.classification = data.classification;
+        } catch (error) {
+          console.warn("AI backend unavailable:", error);
+        }
+        return { ...live.classification };
       },
 
       /** Simulates GET /api/alerts (most recent first) */
@@ -463,12 +486,17 @@
         : stateName === "warning"
         ? "var(--accent-amber-500)"
         : "var(--accent-fire-500)";
-    const ring = el.heroCore.querySelector(".ring--inner");
-    ring.style.stroke = coreColorVar;
-    el.heroCoreValue.textContent = `${topValue}%`;
-    el.heroCoreValue.style.color = coreColorVar;
-    el.heroCore.querySelector(".sensor-core__label").textContent =
-      stateName === "safe" ? "Normal Air" : topLabel.charAt(0).toUpperCase() + topLabel.slice(1) + " Signature";
+    const ring = el.heroCore && el.heroCore.querySelector(".ring--inner");
+    const coreLabel = el.heroCore && el.heroCore.querySelector(".sensor-core__label");
+    if (ring) ring.style.stroke = coreColorVar;
+    if (el.heroCoreValue) {
+      el.heroCoreValue.textContent = `${topValue}%`;
+      el.heroCoreValue.style.color = coreColorVar;
+    }
+    if (coreLabel) {
+      coreLabel.textContent =
+        stateName === "safe" ? "Normal Air" : topLabel.charAt(0).toUpperCase() + topLabel.slice(1) + " Signature";
+    }
 
     return stateName;
   }
