@@ -1,16 +1,31 @@
-# veriFire
+# VeriFIRE
 
-## Raspberry Pi camera feed
+VeriFIRE dashboard connected to a pretrained YOLO11 fire/smoke detector.
 
-This dashboard now reads a live camera stream from a Raspberry Pi endpoint instead of the browser's local webcam.
+## Run on Windows
 
-By default the frontend looks for `/stream.mjpg` on the same origin. You can also override the source with `window.VERIFIRE_CAMERA_STREAM_URL` or the `?camera=` query parameter.
+Open PowerShell in this folder and run:
 
-If you want the repo to serve the stream directly from the Pi, run the included Flask example on the Raspberry Pi 5:
-
-```bash
-pip install flask picamera2
-python3 pi_camera_server.py
+```powershell
+Set-ExecutionPolicy -Scope Process Bypass
+.\start.ps1
 ```
 
-Then open the dashboard at `http://<raspberry-pi-ip>:8000/`.
+Then open:
+
+```text
+http://127.0.0.1:5000
+```
+
+Allow camera access in the browser.
+
+## Model outputs
+
+- Fire: pretrained YOLO detection
+- Smoke: pretrained YOLO detection
+- Normal: no fire/smoke detection
+- Steam: reserved for humidity-sensor fusion; the vision model does not detect steam
+
+The model is a prototype aid and must never suppress or replace a certified smoke alarm.
+
+Model source: https://github.com/sayedgamal99/Real-Time-Smoke-Fire-Detection-YOLO11
