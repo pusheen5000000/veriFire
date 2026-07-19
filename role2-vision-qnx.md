@@ -165,3 +165,13 @@ python3 lcd_label.py combustion_readings/mosquito_coil_trial_01.jsonl "COMBUSTIO
 python3 sensor_service.py --pcf8591 --serial-port /dev/ser10 --log combustion_readings/water_vapor_trial_01.jsonl
 python3 lcd_status.py combustion_readings/water_vapor_trial_01.jsonl --interval 3
 python3 lcd_label.py combustion_readings/water_vapor_trial_01.jsonl "WATER VAPOR"
+
+---
+
+cd /c/work/project/git-repo/veriFire
+python -m http.server 8000 --bind 127.0.0.1
+
+http://127.0.0.1:8000/
+
+cd /data/home/qnxuser
+python3 sensor_api.py --host 0.0.0.0 --port 8765
